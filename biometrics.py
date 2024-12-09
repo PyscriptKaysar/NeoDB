@@ -2,55 +2,38 @@ import threading
 import cv2 
 from deepface import DeepFace
 
-# DeepFace.verify("reference.jpg", "reference.jpg")
+def recognize_face():
+  reference_img = "reference.jpg"
+  cap = cv2.VideoCapture(0)
+  frame_count = 0
+  check_interval = 30
 
-cap = cv2.VideoCapture(0)
+  while True:
+    ret, frame = cap.read()
+    if not ret:
+      break
 
-cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
-
-counter = 0
-
-face_match = False
-
-reference_img = cv2.imread("reference.jpg")
-
-def check_face(frame):
-  global face_match
-
-  try:
-
-    if DeepFace.verify(frame, reference_img.copy())['verified']:
-      face_match=True
-    else:
-      face_match=False
-  except ValueError: 
-    face_match=False
- 
-while True:
-
- ret, frame = cap.read()
-
- if ret:
-    if counter % 30 == 0:
-
+    if frame_count % check_interval == 0:
       try:
-       threading.Thread(target=check_face, args=(frame.copy(),)).start() 
-      except ValueError:
+        result = DeepFace.verify(frame, reference_img)
+        if result["verified"]:
+          text = "Face recognized!"
+        else:
+          text = "Face not recognized."
+      except Exception as e:
+        text = "Face not recognized."
 
-       pass
-    counter += 1
+    # Display the result on the video feed
+    cv2.putText(frame, text, (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2, cv2.LINE_AA)
+    cv2.imshow('Video Feed', frame)
 
-    if face_match:
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+      break
 
-      cv2.putText(frame, "MATCH!", (20, 450), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 3)
+    frame_count += 1
 
-    else:
+  cap.release()
+  cv2.destroyAllWindows()
 
-     cv2.putText(frame, "NO MATCH!", (20, 450), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 3)
-
-    cv2.imshow("video", frame)
- key = cv2.waitKey(1)
- if key == ord("q"):
-    break
-cv2.destroyAllWindows()
+if __name__ == "__main__":
+  recognize_face()
