@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% from 'bootstrap5/form.html' import render_form %}
+{% block title %}Add A New Cafe{% endblock %}
+{% block content %}
+<div class="container">
+  <div class="row">
+    <div class="col-sm-12 col-md-8">
+      <h1>Upload a file into the database</h1>
+      <p></p>
+      <form method="POST" enctype="multipart/form-data">
+        <div class="mb-3">
+          <label for="file" class="form-label">Choose a file to upload</label>
+          <input type="file" class="form-control" id="file" name="file" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Upload</button>
+      </form>
+	  <p class="space-above"><a href="{{ url_for('cafes') }}">See all cafes</a></p>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
