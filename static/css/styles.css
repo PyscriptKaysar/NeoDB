@@ -55,3 +55,14 @@ main.mb-4 {
     margin-top: 100px;
 }
 
+ .page-content {
+    margin-top: 200px; /* Adjust this value as needed */
+    margin-left: 220px;
+ }
+
+ .shift-left {
+    margin-left: 10px; /* Adjust this value as needed */
+}
+
+
+

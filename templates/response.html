@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% block title %}Block Mined Successfully{% endblock %}
+
+{% block content %}
+<div class="container mt-5 shift-left">
+  <h1 style="color: green;">Block Mined Successfully!</h1>
+  <p><strong>Index:</strong> {{ response['index'] }}</p>
+  <p><strong>Timestamp:</strong> {{ response['timestamp'] }}</p>
+  <p><strong>Proof:</strong> {{ response['proof'] }}</p>
+  <p><strong>Previous Hash:</strong> {{ response['previous_hash'] }}</p>
+  <p><strong>Message:</strong> {{ response['message'] }}</p>
+  <p></p>
+  <!-- Countdown Timer -->
+  <p class="text-light">
+    You will be redirected to the cafes list in <span id="countdown">10</span> seconds...
+  </p>
+</div>
+
+<script>
+  // Initialize the countdown value
+  let countdownValue = 10;
+  const countdownElement = document.getElementById('countdown');
+
+  // Update the countdown every second
+  const timer = setInterval(() => {
+    countdownValue--;
+    countdownElement.textContent = countdownValue;
+
+    // Stop the timer when it reaches 0 and redirect
+    if (countdownValue === 0) {
+      clearInterval(timer);
+      window.location.href = "{{ url_for('cafes') }}"; // Redirect to /cafes
+    }
+  }, 1000); // 1000ms = 1 second
+</script>
+{% endblock %}
