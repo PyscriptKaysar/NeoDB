@@ -1,17 +1,16 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Download File</title>
-</head>
-<body>
+{% extends "header.html" %}
+{% block title %}Download File{% endblock %}
+
+{% block content %}
+<div class="container extra-spacing">
     <h1>Download and Decrypt a File</h1>
     <form action="/download" method="POST">
-        <label for="filename">Enter the encrypted filename (with extension):</label>
-        <input type="text" id="filename" name="filename" required>
-        <br><br>
-        <button type="submit">Download</button>
+        <div class="d-flex align-items-center">
+            <label for="filename" class="me-3">Enter the encrypted filename (with extension):</label>
+            <input type="text" id="filename" name="filename" style="width: 400px;" required>
+        </div>
+        <br>
+        <button type="submit" class="btn btn-primary">Download</button>
     </form>
-</body>
-</html>
+</div>
+{% endblock %}

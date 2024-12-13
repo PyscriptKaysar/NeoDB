@@ -64,5 +64,11 @@ main.mb-4 {
     margin-left: 10px; /* Adjust this value as needed */
 }
 
+.extra-spacing {
+    margin-top: 14rem; /* Adjust value as needed */
+    margin-left: 14rem;
+}
+
+
 
 

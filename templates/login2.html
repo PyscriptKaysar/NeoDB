@@ -1,0 +1,27 @@
+{% extends "header.html" %}
+
+{% block title %}Login{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center" style="margin-top: 200px;">
+    <div class="col-md-6">
+        <h2 class="text-center mb-4" style="font-size: 3.5rem;">Login</h2>
+        <form method="POST" enctype="multipart/form-data" action="{{ url_for('login') }}">
+            <!-- ID input -->
+            <div class="mb-3">
+                <label for="id" class="form-label">User ID</label>
+                <input type="text" class="form-control" id="id" name="id" placeholder="Enter your User ID" required>
+            </div>
+            <!-- Key file input -->
+            <div class="mb-3">
+                <label for="key" class="form-label">Upload Private Key</label>
+                <input type="file" class="form-control" id="key" name="key" accept=".key" required>
+            </div>
+            <!-- Submit button -->
+            <div class="d-grid">
+                <button type="submit" class="btn btn-primary">Login</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

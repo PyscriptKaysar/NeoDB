@@ -9,28 +9,27 @@ from flask import Flask, request, jsonify, render_template, send_file
 class Blockchain:
     def __init__(self):
         self.chain = []
-        self.create_block(proof=1, previous_hash='0', message='')
+        self.create_block(proof=1, previous_hash='0')
 
-    def message(self):
-        pub_key = open('user/pub/pub_key.key', "rb").read()
-        uploaded_file = request.files['file']
-        uploaded_file.save(uploaded_file.filename)
-        if uploaded_file.filename != '':
-            with open(uploaded_file.filename, 'r') as file:
-                file_content = file.read()
-            encrypted = asymmetric_encryption.encrypt_message(file_content, pub_key.decode())
-            text_file = open(input('Name your file: '), "wb")
-            text_file.write(encrypted)
-            text_file.close()
-            os.remove(str(uploaded_file.filename))
-            return str(encrypted)
+    # def message(self):
+    #     pub_key = open('user/pub/pub_key.key', "rb").read()
+    #     uploaded_file = request.files['file']
+    #     uploaded_file.save(uploaded_file.filename)
+    #     if uploaded_file.filename != '':
+    #         with open(uploaded_file.filename, 'r') as file:
+    #             file_content = file.read()
+    #         encrypted = asymmetric_encryption.encrypt_message(file_content, pub_key.decode())
+    #         text_file = open(input('Name your file: '), "wb")
+    #         text_file.write(encrypted)
+    #         text_file.close()
+    #         os.remove(str(uploaded_file.filename))
+    #         return str(encrypted)
 
-    def create_block(self, proof, previous_hash, message):
+    def create_block(self, proof, previous_hash):
         block = {'index': len(self.chain) + 1,
                  'timestamp': str(datetime.datetime.now()),
                  'proof': proof,
-                 'previous_hash': previous_hash,
-                 'message': message}
+                 'previous_hash': previous_hash}
         self.chain.append(block)
         return block
 

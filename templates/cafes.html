@@ -1,36 +1,46 @@
 {% extends 'base.html' %}
-{% block title %}Restaurants{% endblock %}
+{% block title %}Uploaded Files{% endblock %}
 
 {% block content %}
 
 <div class="container">
   <div class="row">
     <div class="col-sm-12">
-
       <h1>All Files</h1>
 
-	  <table class="table table-dark table-hover">
+      <table class="table table-dark table-hover">
           <thead>
             <tr>
-                <th scope="col">Uploaded Files</th>
+                <th scope="col">Index</th>
+                <th scope="col">File Name</th>
+                <th scope="col">Uploaded By</th>
+                <th scope="col">File Size (bytes)</th>
+                <th scope="col">View File</th>
+                <th scope="col">Previous Hash</th>
+                <th scope="col">Proof</th>
+                <th scope="col">Timestamp</th>
             </tr>
           </thead>
 
-
           <tbody>
-          {% for filename in cafes %}
+          {% for file in files %}
                 <tr>
+                    <td>{{ file['Index'] }}</td>
+                    <td>{{ file['File Name'] }}</td>
+                    <td>{{ file['Uploaded By'] }}</td>
+                    <td>{{ file['File Size (Bytes)'] }}</td>
                     <td>
-                        <a href="{{ url_for('uploaded_file', filename=filename) }}" target="_blank">{{ filename }}></a>
+                        <a href="{{ file['View File'] }}" target="_blank">view</a>
                     </td>
+                    <td>{{ file['Previous Hash'] }}</td>
+                    <td>{{ file['Proof'] }}</td>
+                    <td>{{ file['Timestamp'] }}</td>
                 </tr>
            {% endfor %}
-
           </tbody>
-  	  </table>
+      </table>
 
       <p><a href="{{ url_for('home') }}">Return to index page</a></p>
-
     </div>
   </div>
 </div>

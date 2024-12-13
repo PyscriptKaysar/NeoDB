@@ -1,4 +1,10 @@
-from flask import Flask, render_template, redirect, request, send_from_directory, url_for, flash, session, send_file, jsonify
+import random
+import string
+from io import BytesIO
+from pathlib import Path
+
+from flask import Flask, render_template, redirect, request, send_from_directory, url_for, flash, session, send_file, \
+    jsonify, make_response
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf import FlaskForm  # a module for easy validation , more security of forms, less code
 from sqlalchemy import Integer, String
@@ -54,9 +60,18 @@ class User(UserMixin, db.Model):
     name: Mapped[str] = mapped_column(String(250), nullable=False)
 
 
+class FileMetadata(db.Model):
+    __tablename__ = "file_metadata"
+    id = db.Column(db.Integer, primary_key=True)
+    file_name = db.Column(db.String(250), nullable=False)
+    uploader = db.Column(db.String(250), nullable=False)
+    file_type = db.Column(db.String(50), nullable=False)
+    file_size = db.Column(db.Integer, nullable=False)
+
+
+7
 with app.app_context():
     db.create_all()
-
 
 # Ensure the upload directory exists
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
@@ -70,7 +85,7 @@ def home():
 @app.route('/get_chain', methods=['GET'])
 def display_chain():
     response = {'chain': blockchain.chain, 'length': len(blockchain.chain)}
-    return render_template('blockchain.html', chain=response)
+    return jsonify(response)
 
 
 @app.route('/valid', methods=['GET'])
@@ -109,42 +124,50 @@ def key_generate():
 @app.route('/download', methods=['GET', 'POST'])
 def download():
     if request.method == 'POST':
-        encrypted = request.form['filename']
-        print(encrypted)
+        encrypted_file = request.form['filename']
         try:
-            enc_file = open(encrypted, "rb").read()
+            # Read the encrypted file
+            enc_file_content = open(f'uploads/{encrypted_file}', "rb").read()
+
+            # Read the private key
             priv_key = open('admin/priv/pri_key.key', "rb").read()
 
-            # Decrypt the file content7
-            timestamp, original_object = asymmetric_encryption.decrypt_message(enc_file, priv_key.decode())
+            # Decrypt the file content
+            timestamp, original_object = asymmetric_encryption.decrypt_message(enc_file_content, priv_key.decode())
 
-            # Save decrypted content to a temporary file
-            with open(encrypted, "w") as output_file:
+            # Save the decrypted content to a temporary file
+            decrypted_file_path = f"{encrypted_file}.decrypted"
+            with open(decrypted_file_path, "w") as output_file:
                 output_file.write(str(original_object))
 
-            # Send the decrypted file as an attachment
-            return send_file(encrypted, as_attachment=True)
+            # Send the decrypted file as a download
+            return send_file(decrypted_file_path, as_attachment=True)
 
         except FileNotFoundError:
-            return f"Error: File '{encrypted}' not found.", 404
+            return f"Error: File '{encrypted_file}' not found.", 404
 
         except Exception as e:
             return f"An error occurred: {str(e)}", 500
 
-    # Render the form for filename input
+        # Render the form for filename input
     return render_template('download.html')
 
 
-@app.route('/add', methods=['GET', 'POST'])  # this is like a secret route where u have type manually to add
+add_data = []
+
+
+@app.route('/add', methods=['GET', 'POST'])
 def add_cafe():
     if request.method == "POST":
         pub_key = open('user/pub/pub_key.key', "rb").read()
 
         # Handle uploaded file
-        uploaded_file = request.files['file']
-        new_filename = request.form['filename']
+        uploaded_file = request.files.get('file')
+        new_filename = request.form.get('filename')
+        uploader = request.form.get('uploader', 'Anonymous')  # Default to 'Anonymous' if not provided
 
-        if uploaded_file.filename and new_filename:
+        if uploaded_file and uploaded_file.filename and new_filename:
+            # Save the uploaded file
             uploaded_file.save(uploaded_file.filename)
 
             # Encrypt the file content
@@ -154,8 +177,24 @@ def add_cafe():
             encrypted = asymmetric_encryption.encrypt_message(file_content, pub_key.decode())
 
             # Save encrypted content to the new file
-            with open(f"{new_filename}.enc", "wb") as text_file:
+            encrypted_file_path = os.path.join(app.config['UPLOAD_FOLDER'], f"{new_filename}.enc")
+            with open(encrypted_file_path, "wb") as text_file:
                 text_file.write(encrypted)
+
+            # Get file metadata
+            file_size = os.path.getsize(encrypted_file_path)
+
+            """
+            # Save metadata to the database
+            new_file = FileMetadata(
+                file_name=new_filename,
+                uploader=uploader,
+                file_type=file_type,
+                file_size=file_size
+            )
+            db.session.add(new_file)
+            db.session.commit()
+            """
 
             os.remove(uploaded_file.filename)  # Clean up original file
 
@@ -164,24 +203,47 @@ def add_cafe():
             previous_proof = previous_block['proof']
             proof = blockchain.proof_of_work(previous_proof)
             previous_hash = blockchain.hash(previous_block)
-            block = blockchain.create_block(proof, previous_hash, f"File {new_filename}.enc encrypted.")
+            block = blockchain.create_block(proof, previous_hash)
+
+            add_data.append({
+                "Index": block['index'],
+                "File Name": new_filename,
+                "Uploaded By": uploader,
+                "File Size (Bytes)": file_size,
+                "View File": url_for('view_file', filename=new_filename),
+                "Previous Hash": block['previous_hash'],
+                "Proof": block['proof'],
+                "Timestamp": block['timestamp']
+            })
 
             response = {
                 'index': block['index'],
                 'timestamp': block['timestamp'],
                 'proof': block['proof'],
-                'previous_hash': block['previous_hash'],
-                'message': block['message']}
+                'previous_hash': block['previous_hash'], }
+
             return render_template('response.html', response=response)
 
-        #return redirect("cafes")  # redirect back to /cafes after 10 seconds
     return render_template('add.html')
 
 
 @app.route('/cafes')
 def cafes():
-    uploaded_files = os.listdir(app.config['UPLOAD_FOLDER'])
-    return render_template('cafes.html', cafes=uploaded_files)
+    return render_template('cafes.html', files=add_data)
+
+
+@app.route('/view/<filename>')
+def view_file(filename):
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename + '.enc')
+    if os.path.exists(file_path):
+        # Read the encrypted file content
+        with open(file_path, 'rb') as enc_file:
+            encrypted_content = enc_file.read()
+
+        # Render the encrypted content as plain text inside the browser
+        return render_template('view_file.html', content=encrypted_content.decode('utf-8', errors='ignore'))
+    else:
+        return "File not found.", 404
 
 
 @app.route('/uploads/<filename>')
@@ -191,44 +253,62 @@ def uploaded_file(filename):
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-    form = forms.RegisterForm(meta={'csrf': True})
-    if form.validate_on_submit():
-        uploaded_file = form.file.data
-        if uploaded_file:
-            file_path = os.path.join(app.config['UPLOAD_FOLDER'], uploaded_file.filename)
-            uploaded_file.save(file_path)
+    if request.method == 'POST':
+        e_id = request.form.get('e_id')  # Correctly access 'e_id' from the form
 
-            flash("File uploaded successfully! Your account has been registered.")
-            return redirect(url_for('login'))
+        if os.path.exists(f'admin/pub/{e_id}.key'):
+            return render_template('register.html', error="User already exists.")
 
-    return render_template("register.html", form=form, current_user=current_user)
+        priv_key, pub_key = asymmetric_encryption.generate_keys(2048)
+        with open(f'admin/pub/{e_id}.key', "wb") as key_file:
+            key_file.write(pub_key.encode(encoding="utf-8"))
+        # Create an in-memory file
+        priv_key_stream = BytesIO()
+        priv_key_stream.write(priv_key.encode("utf-8"))
+        priv_key_stream.seek(0)  # Move to the beginning of the stream
+
+        # Send the file to the user's computer without saving it to disk
+        return send_file(
+            priv_key_stream,
+            as_attachment=True,
+            download_name=f"{e_id}.key"
+        )
+
+    return render_template('register.html')
 
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    form = forms.LoginForm(meta={'csrf': True})
-    if form.validate_on_submit():
-        email = form.data['email']
-        password = form.data['password']
-        user = db.session.execute(db.select(User).where(User.email == email)).scalar()
-        if not user:
-            flash("That email does not exist, please try again.")  # pops up the message
-            return redirect('/login')
-        elif not check_password_hash(pwhash=user.password, password=password):  # decoding the password/ checking if it's the same
-            flash('Password incorrect, please try again.')  # pops up the message
-            return redirect('/login')
-        else:
-            login_user(user)  # logging in this user
-            session.permanent = True  # Make the session respect PERMANENT_SESSION_LIFETIME
-            return redirect(url_for('cafes'))
+    session_id = request.cookies.get('user_id')
+    if session_id:
+        return f"Logged in as {session_id}"
 
-    return render_template("login.html", form=form, current_user=current_user)
+    if request.method == 'POST':
+        id = request.form['id']
+        key = request.files['key']
+        key.save(key.filename)
+        j = f'admin/pub/{id}.key'
+        res = ''.join(random.choices(string.ascii_letters, k=7))
+        with open(key.filename, 'rb') as f:
+            pri = f.read()
+        with open(j, 'rb') as f:
+            pub = f.read()
+        auth = asymmetric_encryption.encrypt_message(res, pub.decode())
+        timestamp, c_auth = asymmetric_encryption.decrypt_message(auth, pri.decode())
+
+        resp = make_response("Logged in successfully")
+        resp.set_cookie('user_id', id, max_age=3600)  # The cookie will expire in 1 hour
+
+        return resp
+
+    return render_template('login2.html')
 
 
 @app.route('/logout')
 def logout():
-    logout_user()
-    return redirect(url_for('home'))
+    resp = make_response("Logged out successfully")
+    resp.delete_cookie('user_id')  # Delete the user_id cookie
+    return resp
 
 
 # FOR REGISTER, button for generating key,
