@@ -4,7 +4,7 @@ from wtforms.validators import DataRequired, URL
 
 
 # TODO: Create a RegisterForm to register new users
-# Creating a form for creating new posts
+
 class RegisterForm(FlaskForm):
     file = FileField('Biometric Scan', validators=[DataRequired(message="Please upload a file.")])
     submit = SubmitField('Generate Key')

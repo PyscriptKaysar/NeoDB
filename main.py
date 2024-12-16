@@ -3,9 +3,9 @@ import random
 import string
 from io import BytesIO
 from flask import Flask, render_template, redirect, request, url_for, session, send_file, make_response
-from flask_bootstrap import Bootstrap5  # pip install bootstrap-flask
+from flask_bootstrap import Bootstrap5 
 from flask_login import login_required
-from datetime import timedelta  # timer for logging out the user
+from datetime import timedelta 
 from cryptidy import asymmetric_encryption
 import blockchain
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user
@@ -16,29 +16,26 @@ import os
 from cryptidy import asymmetric_encryption
 import json
 
-# Initialize Flask app
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your_secret_key'
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=60)
 
+# Defines the path ffor the application in the users' device
 base_path = os.path.abspath(os.path.dirname(__file__))
 
-# Define the upload folder path, you can adjust this as needed
+# Defines the uploads folder, i.e. the folder where all the files uploaded will be save in an encrypted format
 UPLOAD_FOLDER = os.path.join((base_path), 'uploads')
-
-# Configure the app to use this folder for file uploads
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-# Initialize Bootstrap
+
 Bootstrap5(app)
 
-# Initialize LoginManager
 login_manager = LoginManager()
 login_manager.init_app(app)
 
-# Blockchain object
+# Calling the Blockchain object from blockchain.py
 blockchain = blockchain.Blockchain()
 
-# User data structure (simulating a user database for now)
+# Simulates the database for us
 users = {}
 
 # Custom User class to integrate with Flask-Login
@@ -52,10 +49,20 @@ def load_user(user_id):
     return users.get(user_id)
 
 # Register Route
+"""
+Later on, biometrics will be added for further security, 
+as we believe virtual security itself is not a good enough 
+method and this physical layer will be more secure.
+This ensures another important loophole, i.e. any person can
+on the app for now, but when this idea will be implemented,
+it will no longer be an issue.
+"""
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
         e_id = request.form.get('e_id')
+
+        # Get the absolute path to the current directory
         pub_dir = os.path.join(base_path, 'admin', 'pub')
 
         # Ensure the directory exists
@@ -67,6 +74,7 @@ def register():
         if os.path.exists(file_path):
             return render_template('register.html', error="User already exists.")
 
+        # Generate the keys
         priv_key, pub_key = asymmetric_encryption.generate_keys(2048)
 
         # Save public key
@@ -107,7 +115,10 @@ def login():
             if c_auth == res:
                 users[user_id] = User(user_id)
             
-            login_user(users[user_id])  # Log the user in with Flask-Login
+            # Log the user in with Flask-Login
+            # I do understand that this not the best mentod for user session management,
+            # but our motive for now is to convey our idea to the respected judges.
+            login_user(users[user_id])  
 
             resp = make_response(redirect(url_for('cafes')))
             resp.set_cookie('user_id', user_id, max_age=36000)
@@ -135,20 +146,22 @@ def home():
     else:
         return render_template("index.html")
 
-# Protected Route (Requires login)
+# Protected Route (Requires admin login status)
+# This area is not complete yet, an admin route will be created which will the admins
+# (or in our context, organization owners) to access all the files, monitor the logs, 
+# with a few more enhancemts with the help of AI
 @app.route('/admin')
 @login_required
 def protected():
     return render_template('admin.html')
 
-# Other routes (keeping your original routes intact)
+# Generates the keys for the users' actions
 @app.route('/generate', methods=['GET', 'POST'])
 @login_required
 def key_generate():
     if request.method == 'POST':
         folder = request.form['key_option']
         u_id = request.cookies.get('user_id')
-        # Generate keys
         priv_key, pub_key = asymmetric_encryption.generate_keys(2048)
         
         # Get the absolute path to the desired directories
@@ -214,19 +227,22 @@ def add_cafe():
         uploader = request.form.get('uploader', 'Anonymous')
 
         if uploaded_file and uploaded_file.filename and new_filename:
-            # Save the uploaded file temporarily
+            # Save the uploaded file temporarily, because the idea is to save 
+            # the encrypted data to a new file and delete the older one
             uploaded_file.save(uploaded_file.filename)
 
-            # Encrypt the file content
+            # read the file content
             with open(uploaded_file.filename, 'rb') as file:
                 file_content = file.read()
 
+            # encrypt the new file
             encrypted = asymmetric_encryption.encrypt_message(file_content, pub_key)
 
             encrypted_file_path = os.path.join(app.config['UPLOAD_FOLDER'], f"{new_filename}")
             with open(encrypted_file_path, "wb") as text_file:
                 text_file.write(encrypted)
 
+            # to add into logs and the chain
             file_size = os.path.getsize(encrypted_file_path)
             os.remove(uploaded_file.filename)
 
@@ -236,7 +252,14 @@ def add_cafe():
             previous_hash = blockchain.hash(previous_block)
             block = blockchain.create_block(proof, previous_hash)
 
+            # Creates the log file, one of the trickiest part for me,
+            # as i wanted it to save the log data from the running session
+            # incase the server stops. So when it restarts the previous logs 
+            # dont get overwritten or deleted.
             logs_file_path = os.path.join(base_path, 'logs.json')
+
+            # Uploader key will later on be changed to user id, 
+            # which will be taken directly for the session cookies
             new_data = {
                 "Index": block['index'],
                 "File Name": new_filename,
@@ -248,7 +271,7 @@ def add_cafe():
                 "Timestamp": block['timestamp']
             }
 
-            # Step 1: Load existing data from the file, if it exists
+            # Load existing data from the file, if it exists
             if os.path.exists(logs_file_path):
                 with open(logs_file_path, 'r') as json_file:
                     try:
@@ -259,13 +282,14 @@ def add_cafe():
                         # If the file is empty or corrupt, do nothing, just continue with empty add_data
                         pass
 
-            # Step 2: Append new data to add_data list
+            # Append new data to add_data list
             add_data.append(new_data)
 
-            # Step 3: Save the updated add_data back to the file
+            # Save the updated add_data back to the file
             with open(logs_file_path, 'w') as json_file:
                 json.dump(add_data, json_file, indent=4)
 
+            # response to be recieved by the user upon uploading the file
             response = {
                 'index': block['index'],
                 'timestamp': block['timestamp'],
@@ -277,6 +301,8 @@ def add_cafe():
 
     return render_template('add.html')
 
+# any user can see the file i.e. in tis encrypted form only. 
+# This was to imitate a blockchain's ledger 
 @app.route('/view/<filename>')
 @login_required
 def view_file(filename):
@@ -289,6 +315,7 @@ def view_file(filename):
     else:
         return "File not found.", 404
 
+# Lets the user download the file if he has the private key
 @app.route('/download', methods=['GET', 'POST'])    
 @login_required
 def download():
@@ -315,7 +342,11 @@ def download():
                 print(f"Private key content: {priv_key_content}")
             else:
                 return 'Private Key is required'
+            
             # Decrypt the file content using the private key
+            # you might be wondering why the timestamp variable if I am not using it,
+            # this goes back to the working of cryptidy module as it by default 
+            # generates the timestamp if not called
             timestamp, original_object = asymmetric_encryption.decrypt_message(enc_file_content, priv_key_content)
 
             # Save the decrypted content to a temporary file
@@ -333,7 +364,6 @@ def download():
 
     # Render the form for filename input and private key upload
     return render_template('download.html')
-# You can keep the rest of your routes here, ensuring any route requiring login has the `@login_required` decorator.
 
 if __name__ == '__main__':
     app.run(port=5000, debug=True)

@@ -1,30 +1,14 @@
-from cryptidy import asymmetric_encryption
-import os
-import datetime
-import hashlib
-import json
-from flask import Flask, request, jsonify, render_template, send_file
+import datetime # to work with the timestamps
+import hashlib # to generate hashes to keep record of the files
+import json # to help in hash function
 
-
+# The backbone of the project 
 class Blockchain:
     def __init__(self):
         self.chain = []
         self.create_block(proof=1, previous_hash='0')
-
-    # def message(self):
-    #     pub_key = open('user/pub/pub_key.key', "rb").read()
-    #     uploaded_file = request.files['file']
-    #     uploaded_file.save(uploaded_file.filename)
-    #     if uploaded_file.filename != '':
-    #         with open(uploaded_file.filename, 'r') as file:
-    #             file_content = file.read()
-    #         encrypted = asymmetric_encryption.encrypt_message(file_content, pub_key.decode())
-    #         text_file = open(input('Name your file: '), "wb")
-    #         text_file.write(encrypted)
-    #         text_file.close()
-    #         os.remove(str(uploaded_file.filename))
-    #         return str(encrypted)
-
+    
+    # Creates blocks with the values and appneds each of them one after another as users upload data
     def create_block(self, proof, previous_hash):
         block = {'index': len(self.chain) + 1,
                  'timestamp': str(datetime.datetime.now()),
@@ -32,10 +16,14 @@ class Blockchain:
                  'previous_hash': previous_hash}
         self.chain.append(block)
         return block
-
+    
     def print_previous_block(self):
         return self.chain[-1]
 
+    # proof of work for the block, this could be made much more difficult, 
+    # but in the beginning, i opined that such a function is not needed for
+    #secure file storage system, but later realised that it could be a good
+    # way to limit the rate of requests/uploads to not overburden the server.
     def proof_of_work(self, previous_proof):
         new_proof = 1
         check_proof = False
@@ -48,10 +36,12 @@ class Blockchain:
                 new_proof += 1
         return new_proof
 
+    # generates a hash for the upload, acts as an identifier for it
     def hash(self, block):
         encoded_block = json.dumps(block, sort_keys=True).encode()
         return hashlib.sha256(encoded_block).hexdigest()
-
+    
+    # Checks whether the chain is valid or not by compairng the current hash and the previous hash
     def chain_valid(self, chain):
         previous_block = chain[0]
         block_index = 1
