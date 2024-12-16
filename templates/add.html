@@ -8,6 +8,14 @@
       <h1>Upload and Encrypt a file into the database</h1>
       <p></p>
       <form action="/add" method="POST" enctype="multipart/form-data">
+        
+        <!-- Public Key Upload -->
+        <div class="mb-3">
+          <label for="pub_key" class="form-label">Upload the Public Key</label>
+          <input type="file" class="form-control" id="pub_key" name="pub_key" required>
+        </div>
+        
+        <!-- File Upload -->
         <div class="mb-3">
           <label for="file" class="form-label">Choose a file to upload</label>
           <input type="file" class="form-control" id="file" name="file" required>
@@ -18,9 +26,10 @@
           <label for="uploader" class="form-label mt-3">Uploader Name:</label>
           <input type="text" id="uploader" name="uploader" class="form-control" placeholder="Enter your name" required>
         </div>
+        
         <button type="submit" class="btn btn-primary">Upload and Encrypt</button>
       </form>
-	  <p class="space-above"><a href="{{ url_for('cafes') }}">See all cafes</a></p>
+      <p class="space-above"><a href="{{ url_for('cafes') }}">See all cafes</a></p>
     </div>
   </div>
 </div>

@@ -1,15 +1,30 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Generate Key</title>
-</head>
-<body>
-    <h1>Choose the Key Action</h1>
-    <form method="POST">
-        <button type="submit" name="key_option" value="u">Upload Key</button>
-        <button type="submit" name="key_option" value="d">Download Key</button>
-    </form>
-</body>
-</html>
+{% extends 'base.html' %}
+{% block title %}Generate Key{% endblock %}
+
+{% block content %}
+
+<div class="container py-5">
+    <h1 class="text-center mb-4">Choose Your Key Action</h1>
+
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-4">
+            <form method="POST" class="text-center">
+                <p class="mb-4">Select whether you want to download the keys for uploading the files or downloading.</p>
+
+                <div class="d-grid gap-2 col-6 mx-auto">
+                    <!-- Upload Key Button -->
+                    <button type="submit" name="key_option" value="u" class="btn btn-success btn-lg">
+                        Public key for uploading files
+                    </button>
+
+                    <!-- Download Key Button -->
+                    <button type="submit" name="key_option" value="d" class="btn btn-primary btn-lg">
+                        Private key for downloading files
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

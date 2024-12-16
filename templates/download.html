@@ -1,13 +1,18 @@
-{% extends "header.html" %}
+{% extends "base.html" %}
 {% block title %}Download File{% endblock %}
+{% from 'bootstrap5/form.html' import render_form %}
 
 {% block content %}
 <div class="container extra-spacing">
     <h1>Download and Decrypt a File</h1>
-    <form action="/download" method="POST">
+    <form action="/download" method="POST" enctype="multipart/form-data">
         <div class="d-flex align-items-center">
             <label for="filename" class="me-3">Enter the encrypted filename (with extension):</label>
             <input type="text" id="filename" name="filename" style="width: 400px;" required>
+        </div>
+        <div class="mb-3">
+            <label for="priv_key" class="form-label">Upload the Private Key</label>
+            <input type="file" class="form-control" id="priv_key" name="priv_key" required>
         </div>
         <br>
         <button type="submit" class="btn btn-primary">Download</button>

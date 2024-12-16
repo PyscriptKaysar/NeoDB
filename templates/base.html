@@ -10,12 +10,56 @@
     {% block styles %}
     <!-- Loading a custom Bootstrap-Flask CSS here -->
     {{ bootstrap.load_css() }}
-    <link rel="stylesheet" href="static/css/styles.css"/>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}"/>
 
     {% endblock %}
     <title>{% block title %}{% endblock %}</title>
   </head>
   <body>
-    {% block content %}{% endblock %}
+    <!-- Navbar Section -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+      <div class="container-fluid">
+        <a class="navbar-brand" href="/">Neo DB</a>
+        <button
+          class="navbar-toggler"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#navbarNav"
+          aria-controls="navbarNav"
+          aria-expanded="false"
+          aria-label="Toggle navigation"
+        >
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+          <ul class="navbar-nav ms-auto">
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('key_generate') }}">Generate keys</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('cafes') }}">Chain</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('add_cafe') }}">Upload</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('download') }}">Download</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="{{ url_for('logout') }}">Logout</a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Content Block -->
+    {% block content %}
+    {% endblock %}
+
+    {% block scripts %}
+    <!-- Loading JS for Bootstrap -->
+    {{ bootstrap.load_js() }}
+    {% endblock %}
   </body>
 </html>
