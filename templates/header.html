@@ -18,7 +18,7 @@
   <body>
      <nav class="navbar navbar-expand-lg navbar-light fixed-top" id="mainNav">
       <div class="container px-4 px-lg-5">
-        <a class="navbar-brand" style="color: #0074a3; font-size: 1.9rem;" href="/">Neo DB</a>
+        <a class="navbar-brand" style="color: #0074a3; font-size: 1.9rem;" href="/">NeoDB</a>
         <button
           class="navbar-toggler"
           type="button"
@@ -33,7 +33,7 @@
         </button>
         <div class="collapse navbar-collapse" id="navbarResponsive">
           <ul class="navbar-nav ms-auto py-4 py-lg-0">
-            {% if 'user_id' not in session %}
+            {% if user_id not in current_user.id %}
             <li class="nav-item">
               <a
                 class="nav-link px-lg-3 py-3 py-lg-4 text-white" style="font-size: 1.6rem;"

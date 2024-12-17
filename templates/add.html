@@ -1,4 +1,4 @@
-{% extends 'header.html' %}
+{% extends 'base.html' %}
 {% from 'bootstrap5/form.html' import render_form %}
 {% block title %}Add A New Cafe{% endblock %}
 {% block content %}
@@ -29,7 +29,7 @@
         
         <button type="submit" class="btn btn-primary">Upload and Encrypt</button>
       </form>
-      <p class="space-above"><a href="{{ url_for('cafes') }}">See all cafes</a></p>
+      <p class="space-above"><a href="{{ url_for('chain') }}">See Dashboard</a></p>
     </div>
   </div>
 </div>

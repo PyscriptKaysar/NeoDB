@@ -10,7 +10,7 @@ class Blockchain:
     
     # Creates blocks with the values and appneds each of them one after another as users upload data
     def create_block(self, proof, previous_hash):
-        block = {'index': len(self.chain) + 1,
+        block = {'index': len(self.chain),
                  'timestamp': str(datetime.datetime.now()),
                  'proof': proof,
                  'previous_hash': previous_hash}

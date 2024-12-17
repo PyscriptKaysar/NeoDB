@@ -6,7 +6,7 @@
 <div class="container">
   <div class="row">
     <div class="col-sm-12">
-      <h1>All Files</h1>
+      <h1>Dashboard</h1>
 
       <table class="table table-dark table-hover">
           <thead>
@@ -23,18 +23,18 @@
           </thead>
 
           <tbody>
-          {% for file in files %}
+          {% for log in files %}
                 <tr>
-                    <td>{{ file['Index'] }}</td>
-                    <td>{{ file['File Name'] }}</td>
-                    <td>{{ file['Uploaded By'] }}</td>
-                    <td>{{ file['File Size (Bytes)'] }}</td>
+                    <td>{{ log['Index'] }}</td>
+                    <td>{{ log['File Name'] }}</td>
+                    <td>{{ log['Uploaded By'] }}</td>
+                    <td>{{ log['File Size (Bytes)'] }}</td>
                     <td>
-                        <a href="{{ file['View File'] }}" target="_blank">view</a>
+                        <a href="{{ log['View File'] }}" target="_blank">view</a>
                     </td>
-                    <td>{{ file['Previous Hash'] }}</td>
-                    <td>{{ file['Proof'] }}</td>
-                    <td>{{ file['Timestamp'] }}</td>
+                    <td>{{ log['Previous Hash'] }}</td>
+                    <td>{{ log['Proof'] }}</td>
+                    <td>{{ log['Timestamp'] }}</td>
                 </tr>
            {% endfor %}
           </tbody>

@@ -1,14 +1,13 @@
-
 import random
 import string
 from io import BytesIO
 from flask import Flask, render_template, redirect, request, url_for, session, send_file, make_response
-from flask_bootstrap import Bootstrap5 
+from flask_bootstrap import Bootstrap5
 from flask_login import login_required
-from datetime import timedelta 
+from datetime import timedelta
 from cryptidy import asymmetric_encryption
 import blockchain
-from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from flask_bootstrap import Bootstrap5
 import random
 import string
@@ -114,35 +113,34 @@ def login():
             # Simulate user login
             if c_auth == res:
                 users[user_id] = User(user_id)
-            
+
             # Log the user in with Flask-Login
             # I do understand that this not the best mentod for user session management,
             # but our motive for now is to convey our idea to the respected judges.
-            login_user(users[user_id])  
+            login_user(users[user_id])
 
-            resp = make_response(redirect(url_for('cafes')))
+            resp = make_response(redirect(url_for('chain')))
             resp.set_cookie('user_id', user_id, max_age=36000)
 
             return resp
     except ValueError:
         return "Wrong user ID or Private key provided"
-    return render_template('login2.html')
+    return render_template('login.html')
 
 # Logout Route
 @app.route('/logout')
 @login_required
 def logout():
     logout_user()  # Log the user out with Flask-Login
-    resp = make_response("Logged out successfully")
+    resp = make_response(redirect(url_for('login')))
     resp.delete_cookie('user_id')  # Delete the user_id cookie
     return resp
 
 # Home Route
 @app.route("/")
 def home():
-    user_id = session.get('user_id')
-    if user_id:
-        return render_template("index.html", user_id=user_id)
+    if current_user.is_authenticated:
+        return render_template("index.html", user_id=current_user.id)
     else:
         return render_template("index.html")
 
@@ -163,7 +161,7 @@ def key_generate():
         folder = request.form['key_option']
         u_id = request.cookies.get('user_id')
         priv_key, pub_key = asymmetric_encryption.generate_keys(2048)
-        
+
         # Get the absolute path to the desired directories
         admin_pub_dir = os.path.join(base_path, 'admin', 'pub')
         admin_priv_dir = os.path.join(base_path, 'admin', 'priv')
@@ -202,16 +200,35 @@ def key_generate():
 
     return render_template('generate.html')
 
+logs_file_path = os.path.join(base_path, 'logs.json')
+
+def load_logs():
+    """Utility function to load logs from the logs.json file"""
+    if os.path.exists(logs_file_path):
+        with open(logs_file_path, 'r') as json_file:
+            try:
+                return json.load(json_file)  # Return existing logs from the file
+            except json.JSONDecodeError:
+                return []  # Return empty list if file is empty or corrupted
+    return []  # Return empty list if the file does not exist
+
+def save_logs(data):
+    """Utility function to save logs to the logs.json file"""
+    with open(logs_file_path, 'w') as json_file:
+        json.dump(data, json_file, indent=4)
+
 @app.route('/chain')
 @login_required
-def cafes():
-    return render_template('cafes.html', files=add_data)
-
-add_data = []
+def chain():
+    """Route to display the logs of all uploaded files"""
+    # Load logs from the file and pass them to the template
+    logs_data = load_logs()
+    return render_template('chain.html', files=logs_data)
 
 @app.route('/add', methods=['GET', 'POST'])
 @login_required
-def add_cafe():
+def add_file():
+    """Route to handle file upload and append logs to the logs file"""
     if request.method == "POST":
         # Get the uploaded public key file
         pub_key_file = request.files.get('pub_key')
@@ -227,22 +244,21 @@ def add_cafe():
         uploader = request.form.get('uploader', 'Anonymous')
 
         if uploaded_file and uploaded_file.filename and new_filename:
-            # Save the uploaded file temporarily, because the idea is to save 
-            # the encrypted data to a new file and delete the older one
+            # Save the uploaded file temporarily, then encrypt and save it
             uploaded_file.save(uploaded_file.filename)
 
-            # read the file content
+            # Read the file content
             with open(uploaded_file.filename, 'rb') as file:
                 file_content = file.read()
 
-            # encrypt the new file
+            # Encrypt the file content
             encrypted = asymmetric_encryption.encrypt_message(file_content, pub_key)
 
             encrypted_file_path = os.path.join(app.config['UPLOAD_FOLDER'], f"{new_filename}")
             with open(encrypted_file_path, "wb") as text_file:
                 text_file.write(encrypted)
 
-            # to add into logs and the chain
+            # To add into logs and the blockchain
             file_size = os.path.getsize(encrypted_file_path)
             os.remove(uploaded_file.filename)
 
@@ -252,14 +268,7 @@ def add_cafe():
             previous_hash = blockchain.hash(previous_block)
             block = blockchain.create_block(proof, previous_hash)
 
-            # Creates the log file, one of the trickiest part for me,
-            # as i wanted it to save the log data from the running session
-            # incase the server stops. So when it restarts the previous logs 
-            # dont get overwritten or deleted.
-            logs_file_path = os.path.join(base_path, 'logs.json')
-
-            # Uploader key will later on be changed to user id, 
-            # which will be taken directly for the session cookies
+            # Prepare the log data
             new_data = {
                 "Index": block['index'],
                 "File Name": new_filename,
@@ -271,25 +280,12 @@ def add_cafe():
                 "Timestamp": block['timestamp']
             }
 
-            # Load existing data from the file, if it exists
-            if os.path.exists(logs_file_path):
-                with open(logs_file_path, 'r') as json_file:
-                    try:
-                        # Load existing data into add_data
-                        existing_data = json.load(json_file)
-                        add_data.extend(existing_data)  # Append existing data to the add_data list
-                    except json.JSONDecodeError:
-                        # If the file is empty or corrupt, do nothing, just continue with empty add_data
-                        pass
+            # Load existing logs, append new data, and save back to the file
+            logs_data = load_logs()  # Load current logs from the file
+            logs_data.append(new_data)  # Append the new log
+            save_logs(logs_data)  # Save updated logs back to the file
 
-            # Append new data to add_data list
-            add_data.append(new_data)
-
-            # Save the updated add_data back to the file
-            with open(logs_file_path, 'w') as json_file:
-                json.dump(add_data, json_file, indent=4)
-
-            # response to be recieved by the user upon uploading the file
+            # Response to be sent back to the user
             response = {
                 'index': block['index'],
                 'timestamp': block['timestamp'],
@@ -316,7 +312,7 @@ def view_file(filename):
         return "File not found.", 404
 
 # Lets the user download the file if he has the private key
-@app.route('/download', methods=['GET', 'POST'])    
+@app.route('/download', methods=['GET', 'POST'])
 @login_required
 def download():
     if request.method == 'POST':
@@ -326,23 +322,18 @@ def download():
         try:
             # Get the path to the encrypted file
             e_file = os.path.join(base_path, 'uploads', encrypted_file)
-            print(f"Encrypted file path: {e_file}")
-            
+
             # Read the encrypted file content
             with open(e_file, "rb") as file:
                 enc_file_content = file.read()
-            print(f"Encrypted file content: {enc_file_content}")
 
             # Get the uploaded private key from the user
- 
             # Read the private key content from the uploaded file
-
             if priv_key_file:
                 priv_key_content = priv_key_file.read().decode("utf-8")
-                print(f"Private key content: {priv_key_content}")
             else:
                 return 'Private Key is required'
-            
+
             # Decrypt the file content using the private key
             # you might be wondering why the timestamp variable if I am not using it,
             # this goes back to the working of cryptidy module as it by default 
@@ -351,16 +342,16 @@ def download():
 
             # Save the decrypted content to a temporary file
             d_file = os.path.join(base_path,encrypted_file)
-            with open(d_file, "w") as output_file:
-                output_file.write(str(original_object))
+            with open(d_file, "wb") as output_file:
+                output_file.write(original_object)
 
             # Send the decrypted file as a download
             return send_file(d_file, as_attachment=True)
 
         except FileNotFoundError:
             return f"Error: File '{encrypted_file}' not found.", 404
-        # except Exception as e:
-        #     return f"An error occurred: {str(e)}", 500
+        except ValueError:
+            return f"Error: Wrong Key provided", 404
 
     # Render the form for filename input and private key upload
     return render_template('download.html')
