@@ -1,7 +1,8 @@
 # 🚀 NeoDB
 
 **NeoDB**: A dynamic and lightweight database solution for developers.
-
+Slides: https://docs.google.com/presentation/d/172yU7Bwi1oE1P08kFZKdpCXNvMPOt8iE/edit?usp=sharing&ouid=105292607852324084743&rtpof=true&sd=true
+Video: https://youtu.be/A75b9HpFUXs
 ---
 
 ## 📋 Features
